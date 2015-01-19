@@ -73,7 +73,7 @@ int main(){
 		}
 	}
 
-	std::cout << "Time spent solving (OMP measure) " << double(omp_get_wtime() - start) << " seconds."<< std::endl;
+	std::cout << "[JS + DZ] Time spent solving (OMP measure) " << double(omp_get_wtime() - start) << " seconds."<< std::endl;
 
 	return 0;
 }
