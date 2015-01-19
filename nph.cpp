@@ -1,88 +1,79 @@
 #include <iostream>
-#include <string>
-#include <stdlib.h>
-#include <vector>
 #include <omp.h>
-#include <time.h>
-#include <ctime>
 
-
-#define N 1948027440
-#define M 1948027450
-
-
-using namespace std;
-
-unsigned short int my_hash(string str, unsigned int scale){
-	unsigned int x = 0;
-	for (unsigned int i = 0; i < str.length(); ++i){
-		x <<= 3;
-		x ^= str.at(i);
-	}
-	return (scale / x) % 41;
-}
-
-
-void print_result(vector<unsigned short int> hashes, vector<string> strings){
-	for (int i = 0; i < strings.size(); ++i){
-		cout << strings.at(i) << " = " << hashes.at(i) << endl;
-	}
+unsigned int my_hash(const char* s, unsigned int c) {
+   unsigned int x = 0;
+   for (unsigned int i = 0; s[i] != 0; ++i) {
+      x <<= 3;
+      x ^= s[i];
+   }
+   int d = (c / x) % 41;
+   return d;
 }
 
 int main(){
 
-	string arr[31] = { "and", "as", "assert", "break",
-		"class", "continue", "def", "del",
-		"elif", "else", "except", "exec",
-		"finally", "for", "from", "if",
-		"import", "in", "is", "lambda",
-		"not", "or", "pass", "print",
-		"raise", "return", "try", "while",
-		"with", "yield", "global" };
+	double start = omp_get_wtime();
 
-	bool hashes[41];
-	int i, j, h, tid, counter;
-	clock_t begin_pt = clock();
-
-	//cout << "Entering" << endl;
-#pragma omp parallel private(i,j,h, tid, counter, hashes)
+	#pragma omp parallel
 	{
-	#pragma omp for nowait
+		const char* arr[] = {
+         "and", "del", "from", "not", "while", 
+         "as", "elif", "global", "or", "with", 
+         "assert", "else", "if", "pass", "yield", 
+         "break", "except", "import", "print", "class", 
+         "exec", "in", "raise", "continue", "finally", 
+         "is", "return", "def", "for", "lambda", 
+         "try"
+      	};
+
+		int i, h;
+		
+		#pragma omp for nowait
 		for (i = 0; i < 1948027450; ++i){
-			//cout << "---" << endl;
-			for (j = 0; j < sizeof(hashes) / sizeof(hashes[0]); ++j){
-				hashes[j] = false;
-			}
-			for (int j = 0; j < (sizeof(arr) / sizeof(arr[0])); ++j){
+
+			// VARIABLES
+			int hashes[41] = {0};
+			int exist = 0;
+
+			// GET HASH VALUE FOR EACH WORD
+			for (int j = 0; j < 31; ++j){
 				h = my_hash(arr[j], i);
-				//cout << arr[j] << " " << h << endl;
-				if (hashes[h] == false){
-					hashes[h] = true;
-					//cout << "\tAdding " << h << endl;
+
+				// IF HASH VALUE WAS ALREADY TAKEN
+				if (hashes[h] == 1){
+					exist = 1;
+					break;
 				}
 				else {
-					//cout << "\tCollision detected " << h << endl;
-					goto next;
+					hashes[h] = 1;
 				}
 			}
-			counter = 0;
-			for (j = 0; j < sizeof(hashes) / sizeof(hashes[0]); ++j){
-				if (hashes[j] != false){
-					++counter;
+
+			// IF THERE WAS NO COLLISIONS DETECTED
+			if (exist == 0){
+				// GET NUMBER OF UNIQUE HASHES
+				int counter = 0;
+				for (int j = 0; j < 41; ++j){
+					if (hashes[j] == 1){
+						++counter;
+					}
+				}
+				// IF 31 HASH VALUES WERE GENERATED
+				if ( counter > 30 ){
+					std::cout << "Value detected :" << i  << std::endl;
+					for (int j = 0; j < 41; ++j){
+						if (hashes[j] == 1){
+							std::cout << j << " ";
+						}
+					}
+					std::cout << std::endl;
 				}
 			}
-			if (counter == 31){
-				cout << "Value detected :" << i << endl;
-			}
-			if ((i % 10000000) == 0){
-				tid = omp_get_thread_num();
-				cout << "Thread " << tid << " value: " << i << endl;
-			}
-			next:
-			i;
 		}
 	}
-	std::cout << "Time spent solving " << double(clock() - begin_pt) / CLOCKS_PER_SEC << endl;
-	system("PAUSE");
+
+	std::cout << "Time spent solving (OMP measure) " << double(omp_get_wtime() - start) << " seconds."<< std::endl;
+
 	return 0;
 }
